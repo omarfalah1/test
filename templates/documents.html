@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Management System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">Documents</h1>
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for doc in documents %}
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ doc.original_name }}</h5>
+                        <p class="card-text">
+                            <small class="text-muted">Created: {{ doc.created_at }}</small>
+                        </p>
+                        {% if doc.metadata %}
+                        <div class="mb-2">
+                            {% for tag in doc.metadata.get('tags', []) %}
+                            <span class="badge bg-secondary me-1">{{ tag }}</span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('view_document', doc_id=doc.id) }}" class="btn btn-primary btn-sm">View</a>
+                            <a href="{{ url_for('download_document', doc_id=doc.id) }}" class="btn btn-success btn-sm">Download</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <form method="POST" action="/documents/archive">
+            <table>
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="select-all"></th>
+                        <!-- other headers -->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for doc in documents %}
+                    <tr>
+                        <td><input type="checkbox" name="doc_ids" value="{{ doc.id }}"></td>
+                        <!-- other columns -->
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit">Archive Selected</button>
+        </form>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Select/deselect all checkboxes
+        const selectAll = document.getElementById('select-all');
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                document.querySelectorAll('input[name="doc_ids"]')
+                    .forEach(cb => cb.checked = selectAll.checked);
+            });
+        }
+    </script>
+</body>
+</html>
