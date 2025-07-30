@@ -20,14 +20,93 @@ dms = DocumentManagementSystem()
 def index():
     """Main documents page."""
     documents = dms.list_documents()
+    image_groups = dms.list_image_groups()
     
-    # Filter documents based on search query
+    # Filter documents based on user role and ownership/sharing
+    current_user = session.get('username')
+    current_role = session.get('role')
+    
+    if current_role != 'admin':
+        # Non-admin users can only see documents they uploaded or were sent to them
+        filtered_documents = []
+        for doc in documents:
+            doc_uploader = doc.get('metadata', {}).get('uploaded_by', '')
+            doc_recipients = doc.get('metadata', {}).get('recipients', [])
+            
+            # User can see if they uploaded it or if they're in the recipients list
+            if doc_uploader == current_user or current_user in doc_recipients:
+                filtered_documents.append(doc)
+        
+        documents = filtered_documents
+        
+        # Filter image groups similarly
+        filtered_image_groups = []
+        for group in image_groups:
+            group_uploader = group.get('metadata', {}).get('uploaded_by', '')
+            group_recipients = group.get('metadata', {}).get('recipients', [])
+            
+            # User can see if they uploaded it or if they're in the recipients list
+            if group_uploader == current_user or current_user in group_recipients:
+                filtered_image_groups.append(group)
+        
+        image_groups = filtered_image_groups
+    
+    # Get filter parameters
     search_query = request.args.get('search', '').strip()
+    status_filter = request.args.get('status', 'all')
+    uploader_filter = request.args.get('uploader', 'all')
+    sort_by = request.args.get('sort', 'date_desc')
+    
+    # Get all unique uploaders for filter dropdown
+    all_uploaders = set()
+    for doc in documents:
+        if doc.get('metadata', {}).get('uploaded_by'):
+            all_uploaders.add(doc['metadata']['uploaded_by'])
+    for group in image_groups:
+        if group.get('metadata', {}).get('uploaded_by'):
+            all_uploaders.add(group['metadata']['uploaded_by'])
+    all_uploaders = sorted(list(all_uploaders))
+    
+    # Apply filters to regular documents
     if search_query:
         documents = [doc for doc in documents if search_query.lower() in doc.get('original_name', '').lower()]
     
-    # Get image groups separately
-    image_groups = dms.list_image_groups()
+    if status_filter != 'all':
+        documents = [doc for doc in documents if doc.get('metadata', {}).get('status') == status_filter]
+    
+    if uploader_filter != 'all':
+        documents = [doc for doc in documents if doc.get('metadata', {}).get('uploaded_by') == uploader_filter]
+    
+    # Apply filters to image groups
+    if search_query:
+        filtered_image_groups = []
+        for group in image_groups:
+            group_name = group.get('metadata', {}).get('name', '').lower()
+            group_tags = ' '.join(group.get('metadata', {}).get('tags', [])).lower()
+            if (search_query.lower() in group_name or 
+                search_query.lower() in group_tags):
+                filtered_image_groups.append(group)
+        image_groups = filtered_image_groups
+    
+    if status_filter != 'all':
+        image_groups = [group for group in image_groups if group.get('metadata', {}).get('status') == status_filter]
+    
+    if uploader_filter != 'all':
+        image_groups = [group for group in image_groups if group.get('metadata', {}).get('uploaded_by') == uploader_filter]
+    
+    # Apply sorting
+    if sort_by == 'date_asc':
+        documents.sort(key=lambda x: x.get('created_at', ''))
+        image_groups.sort(key=lambda x: x.get('created_at', ''))
+    elif sort_by == 'date_desc':
+        documents.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        image_groups.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+    elif sort_by == 'uploader':
+        documents.sort(key=lambda x: x.get('metadata', {}).get('uploaded_by', ''))
+        image_groups.sort(key=lambda x: x.get('metadata', {}).get('uploaded_by', ''))
+    elif sort_by == 'status':
+        documents.sort(key=lambda x: x.get('metadata', {}).get('status', ''))
+        image_groups.sort(key=lambda x: x.get('metadata', {}).get('status', ''))
     
     # Group documents by type
     regular_docs = [doc for doc in documents if not doc.get('group_images')]
@@ -64,7 +143,12 @@ def index():
                          documents=regular_docs, 
                          image_groups=image_groups,
                          search_query=search_query,
-                         role=session.get('role'))
+                         status_filter=status_filter,
+                         uploader_filter=uploader_filter,
+                         sort_by=sort_by,
+                         all_uploaders=all_uploaders,
+                         role=session.get('role'),
+                         Config=Config)
 
 @bp.route('/upload', methods=['POST'])
 @login_required
@@ -98,12 +182,16 @@ def upload_document():
         else:
             status = request.form.get('status', 'active')
             uploaded_by = request.form.get('uploaded_by', username)
+        # Get recipients
+        recipients = request.form.getlist('recipients')
+        
         metadata = {
             'department': request.form.get('department', ''),
             'tags': request.form.get('tags', '').split(','),
             'status': status,
             'uploaded_by': uploaded_by,
-            'upload_date': datetime.now().isoformat()
+            'upload_date': datetime.now().isoformat(),
+            'recipients': recipients
         }
         dms.add_image_group(image_infos, metadata=metadata)
         flash(f'{len(image_infos)} images uploaded successfully!')
@@ -129,12 +217,16 @@ def upload_document():
         else:
             status = request.form.get('status', 'active')
             uploaded_by = request.form.get('uploaded_by', username)
+        # Get recipients
+        recipients = request.form.getlist('recipients')
+        
         metadata = {
             'department': request.form.get('department', ''),
             'tags': request.form.get('tags', '').split(','),
             'status': status,
             'uploaded_by': uploaded_by,
-            'upload_date': datetime.now().isoformat()
+            'upload_date': datetime.now().isoformat(),
+            'recipients': recipients
         }
         dms.add_document(temp_path, metadata=metadata, created_by=username)
         os.remove(temp_path)
@@ -286,11 +378,19 @@ def add_comment(doc_id):
 def view_document_version(doc_id, version_id):
     """View a specific version of a document."""
     doc = dms.get_document(doc_id)
-    version = dms.get_document_version(doc_id, version_id)
     
-    if not doc or not version:
-        flash('Document or version not found')
+    if not doc:
+        flash('Document not found')
         return redirect(url_for('documents.index'))
+    
+    # For now, return a placeholder version since the method doesn't exist yet
+    version = {
+        'id': version_id,
+        'version_number': version_id,
+        'created_at': doc.get('created_at', ''),
+        'created_by': doc.get('metadata', {}).get('uploaded_by', 'Unknown'),
+        'change_description': 'Version details not available yet'
+    }
     
     return render_template('documents/version.html', doc=doc, version=version)
 
@@ -303,8 +403,13 @@ def document_permissions(doc_id):
         flash('Document not found')
         return redirect(url_for('documents.index'))
     
-    permissions = dms.get_document_permissions(doc_id)
-    return render_template('documents/permissions.html', doc=doc, permissions=permissions)
+    # Get users for the dropdown (same as admin users route)
+    users = Config.USERS
+    
+    # For now, return empty permissions list since the method doesn't exist yet
+    permissions = []
+    
+    return render_template('documents/permissions.html', doc=doc, permissions=permissions, users=users)
 
 @bp.route('/document/<doc_id>/activity')
 @login_required
@@ -315,7 +420,9 @@ def document_activity(doc_id):
         flash('Document not found')
         return redirect(url_for('documents.index'))
     
-    activity = dms.get_document_activity(doc_id)
+    # For now, return empty activity list since the method doesn't exist yet
+    activity = []
+    
     return render_template('documents/activity.html', doc=doc, activity=activity)
 
 @bp.route('/set_status/<doc_id>', methods=['POST'])

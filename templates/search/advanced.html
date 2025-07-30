@@ -154,6 +154,20 @@
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
+                                            {% if doc.is_image_group %}
+                                            <i class="fas fa-images me-2 text-warning"></i>
+                                            <div>
+                                                <div class="fw-bold">{{ doc.original_name }}</div>
+                                                <small class="text-muted">
+                                                    {{ doc.image_count }} images
+                                                    {% if doc.metadata and doc.metadata.tags %}
+                                                    {% for tag in doc.metadata.tags %}
+                                                    <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                                                    {% endfor %}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                            {% else %}
                                             <i class="fas fa-file-alt me-2 text-primary"></i>
                                             <div>
                                                 <div class="fw-bold">{{ doc.original_name }}</div>
@@ -165,12 +179,23 @@
                                                     {% endif %}
                                                 </small>
                                             </div>
+                                            {% endif %}
                                         </div>
                                     </td>
                                     <td>
+                                        {% if doc.is_image_group %}
+                                        <span class="badge bg-warning">Image Group</span>
+                                        {% else %}
                                         <span class="badge bg-secondary">{{ doc.file_type|default('unknown') }}</span>
+                                        {% endif %}
                                     </td>
-                                    <td>{{ doc.file_size|format_file_size }}</td>
+                                    <td>
+                                        {% if doc.is_image_group %}
+                                        <span class="text-muted">Multiple files</span>
+                                        {% else %}
+                                        {{ doc.file_size|format_file_size }}
+                                        {% endif %}
+                                    </td>
                                     <td>{{ doc.created_at|format_datetime }}</td>
                                     <td>
                                         {% if doc.metadata and doc.metadata.status %}
@@ -188,10 +213,17 @@
                                                class="btn btn-outline-primary" title="View">
                                                 <i class="fas fa-eye"></i>
                                             </a>
+                                            {% if doc.is_image_group and doc.image_count > 1 %}
+                                            <a href="{{ url_for('documents.download_all_images', doc_id=doc.id) }}" 
+                                               class="btn btn-outline-success" title="Download All">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                            {% elif not doc.is_image_group %}
                                             <a href="{{ url_for('documents.download_document', doc_id=doc.id) }}" 
                                                class="btn btn-outline-success" title="Download">
                                                 <i class="fas fa-download"></i>
                                             </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>

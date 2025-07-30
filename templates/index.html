@@ -68,6 +68,11 @@
                     <i class="fas fa-filter me-2"></i>Apply
                 </button>
             </div>
+            <div class="filter-group">
+                <a href="{{ url_for('documents.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times me-2"></i>Clear
+                </a>
+            </div>
         </form>
     </div>
 </div>
@@ -86,6 +91,7 @@
                             <th>Status</th>
                             <th>Feedback</th>
                             {% if role == 'admin' %}<th>Uploader</th>{% endif %}
+                            <th>Recipients</th>
                             <th>Tags</th>
                             <th>Actions</th>
                         </tr>
@@ -128,6 +134,15 @@
                     </td>
                     <td>{{ group.metadata.feedback if group.metadata else '' }}</td>
                     {% if role == 'admin' %}<td>{{ group.metadata.uploaded_by if group.metadata else 'Unknown' }}</td>{% endif %}
+                    <td>
+                        {% if group.metadata and group.metadata.recipients %}
+                            {% for recipient in group.metadata.recipients %}
+                                <span class="badge bg-info me-1">{{ recipient }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">Private</span>
+                        {% endif %}
+                    </td>
                     <td>
                         {% if group.metadata and group.metadata.tags %}
                             {% for tag in group.metadata.tags %}
@@ -181,6 +196,15 @@
                     <td>{{ doc.metadata.feedback if doc.metadata else '' }}</td>
                     {% if role == 'admin' %}<td>{{ doc.metadata.uploaded_by if doc.metadata else 'Unknown' }}</td>{% endif %}
                     <td>
+                        {% if doc.metadata and doc.metadata.recipients %}
+                            {% for recipient in doc.metadata.recipients %}
+                                <span class="badge bg-info me-1">{{ recipient }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">Private</span>
+                        {% endif %}
+                    </td>
+                    <td>
                         {% if doc.metadata and doc.metadata.tags %}
                             {% for tag in doc.metadata.tags %}
                                 <span class="metadata-tag">{{ tag }}</span>
@@ -202,7 +226,7 @@
                 </tr>
                 {% endfor %}
                 {% if not documents and not image_groups %}
-                <tr><td colspan="{% if role == 'admin' %}7{% else %}6{% endif %}">No documents found.</td></tr>
+                <tr><td colspan="{% if role == 'admin' %}8{% else %}7{% endif %}">No documents found.</td></tr>
                 {% endif %}
             </tbody>
         </table>
@@ -253,6 +277,17 @@
                             <option value="archived">Archived</option>
                             <option value="draft">Draft</option>
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Send To (Recipients)</label>
+                        <select name="recipients" class="form-select" multiple>
+                            {% for username, info in Config.USERS.items() %}
+                                {% if username != session.get('username') %}
+                                <option value="{{ username }}">{{ username }} ({{ info.role }})</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple recipients. Leave empty to keep document private.</small>
                     </div>
                     {% if role == 'admin' %}
                     <div class="mb-3">

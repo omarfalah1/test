@@ -52,8 +52,8 @@ def advanced_search():
         'query': query,
         'file_type': file_type,
         'date_range': [date_from, date_to] if date_from or date_to else None,
-        'file_size_min': int(size_min) * 1024 if size_min else None,
-        'file_size_max': int(size_max) * 1024 if size_max else None,
+        'file_size_min': int(size_min) * 1024 if size_min and size_min.isdigit() else None,
+        'file_size_max': int(size_max) * 1024 if size_max and size_max.isdigit() else None,
         'status': status
     }
     

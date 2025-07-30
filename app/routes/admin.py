@@ -125,6 +125,6 @@ def users():
             flash('User deleted successfully')
     
     # Get all users
-    users = list(Config.USERS.items())
+    users = Config.USERS
     
     return render_template('admin/users.html', users=users) 

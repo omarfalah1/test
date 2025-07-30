@@ -583,10 +583,13 @@ class DocumentManagementSystem:
             limit: Maximum number of results
             
         Returns:
-            List of matching documents
+            List of matching documents and image groups
         """
+        results = []
+        
+        # Search regular documents
         with self.get_db_connection() as conn:
-            # Build the base query
+            # Build the base query for documents
             base_query = """
                 SELECT DISTINCT d.id, d.original_name, d.stored_path, d.created_at, d.version, 
                        d.metadata, d.file_size, d.file_hash, d.content_index
@@ -617,28 +620,28 @@ class DocumentManagementSystem:
             
             # Add filters
             if filters:
-                if 'date_range' in filters:
-                    start_date, end_date = filters['date_range']
-                    conditions.append("d.created_at BETWEEN ? AND ?")
-                    params.extend([start_date, end_date])
+                if 'date_from' in filters and filters['date_from']:
+                    conditions.append("d.created_at >= ?")
+                    params.append(filters['date_from'])
                 
-                if 'file_type' in filters:
-                    file_types = filters['file_type']
-                    if isinstance(file_types, str):
-                        file_types = [file_types]
-                    placeholders = ','.join(['?' for _ in file_types])
-                    conditions.append(f"d.original_name LIKE ANY(ARRAY[{placeholders}])")
-                    params.extend([f'%.{ft}' for ft in file_types])
+                if 'date_to' in filters and filters['date_to']:
+                    conditions.append("d.created_at <= ?")
+                    params.append(filters['date_to'])
                 
-                if 'file_size_min' in filters:
+                if 'file_type' in filters and filters['file_type']:
+                    file_type = filters['file_type']
+                    conditions.append("d.original_name LIKE ?")
+                    params.append(f'%.{file_type}')
+                
+                if 'size_min' in filters and filters['size_min']:
                     conditions.append("d.file_size >= ?")
-                    params.append(filters['file_size_min'])
+                    params.append(int(filters['size_min']) * 1024)  # Convert KB to bytes
                 
-                if 'file_size_max' in filters:
+                if 'size_max' in filters and filters['size_max']:
                     conditions.append("d.file_size <= ?")
-                    params.append(filters['file_size_max'])
+                    params.append(int(filters['size_max']) * 1024)  # Convert KB to bytes
                 
-                if 'status' in filters:
+                if 'status' in filters and filters['status']:
                     conditions.append("d.metadata LIKE ?")
                     params.append(f'%"status": "{filters["status"]}"%')
             
@@ -651,15 +654,71 @@ class DocumentManagementSystem:
             
             cursor = conn.execute(base_query, params)
             columns = [col[0] for col in cursor.description]
-            documents = []
             
             for row in cursor.fetchall():
                 doc_dict = dict(zip(columns, row))
                 if doc_dict['metadata']:
                     doc_dict['metadata'] = json.loads(doc_dict['metadata'])
-                documents.append(doc_dict)
+                results.append(doc_dict)
+        
+        # Search image groups
+        image_groups = self.list_image_groups()
+        for group in image_groups:
+            # Apply text search to image groups
+            if query:
+                search_terms = query.lower().split()
+                group_name = group.get('metadata', {}).get('name', '').lower()
+                group_tags = ' '.join(group.get('metadata', {}).get('tags', [])).lower()
+                
+                matches = False
+                for term in search_terms:
+                    if term in group_name or term in group_tags:
+                        matches = True
+                        break
+                
+                if not matches:
+                    continue
             
-            return documents
+            # Apply filters to image groups
+            if filters:
+                # Date filters
+                if 'date_from' in filters and filters['date_from']:
+                    group_date = group.get('created_at', '')
+                    if group_date < filters['date_from']:
+                        continue
+                
+                if 'date_to' in filters and filters['date_to']:
+                    group_date = group.get('created_at', '')
+                    if group_date > filters['date_to']:
+                        continue
+                
+                # Status filter
+                if 'status' in filters and filters['status']:
+                    group_status = group.get('metadata', {}).get('status', '')
+                    if group_status != filters['status']:
+                        continue
+            
+            # Add image group to results
+            group_result = {
+                'id': group['id'],
+                'original_name': group.get('metadata', {}).get('name', 'Image Group'),
+                'stored_path': None,  # Image groups don't have a single stored path
+                'created_at': group.get('created_at', ''),
+                'version': 1,
+                'metadata': group.get('metadata', {}),
+                'file_size': None,  # Will be calculated if needed
+                'file_hash': None,
+                'content_index': None,
+                'is_image_group': True,
+                'image_count': len(group.get('images', []))
+            }
+            results.append(group_result)
+        
+        # Sort all results by creation date
+        results.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        
+        # Limit results
+        return results[:limit]
 
     def create_document_version(self, doc_id: str, new_file_path: str, created_by: str, change_description: str = "") -> str:
         """Create a new version of an existing document.
