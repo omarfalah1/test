@@ -1,7 +1,7 @@
 <!-- Navigation Bar Component -->
 <nav class="navbar navbar-expand-lg navbar-dark shadow-lg" style="background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%); border-radius: 0 0 2em 2em; min-height: 70px;">
     <div class="custom-navbar-container d-flex justify-content-between align-items-center mx-auto px-4" style="max-width: 1200px; width: 100%;">
-        <a class="navbar-brand d-flex align-items-center fw-bold fs-4" href="{{ url_for('index') }}" style="letter-spacing: 1px;">
+        <a class="navbar-brand d-flex align-items-center fw-bold fs-4" href="{{ url_for('documents.index') }}" style="letter-spacing: 1px;">
             <i class="fas fa-file-archive me-2" style="font-size: 1.7em;"></i> DMS
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -9,13 +9,15 @@
         </button>
         <div class="collapse navbar-collapse flex-grow-0" id="navbarNav">
             <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-2">
+                {% if session.get('role') == 'admin' %}
                 <li class="nav-item">
-                    <a class="nav-link px-4 py-2 rounded-pill {% if request.endpoint == 'dashboard' %}active bg-white text-primary fw-bold shadow-sm{% else %}text-white{% endif %}" href="{{ url_for('dashboard') }}">
+                    <a class="nav-link px-4 py-2 rounded-pill {% if request.endpoint == 'admin.dashboard' %}active bg-white text-primary fw-bold shadow-sm{% else %}text-white{% endif %}" href="{{ url_for('admin.dashboard') }}">
                         <i class="fas fa-home me-1"></i> Dashboard
                     </a>
                 </li>
+                {% endif %}
                 <li class="nav-item">
-                    <a class="nav-link px-4 py-2 rounded-pill {% if request.endpoint == 'index' %}active bg-white text-primary fw-bold shadow-sm{% else %}text-white{% endif %}" href="{{ url_for('index') }}">
+                    <a class="nav-link px-4 py-2 rounded-pill {% if request.endpoint == 'documents.index' %}active bg-white text-primary fw-bold shadow-sm{% else %}text-white{% endif %}" href="{{ url_for('documents.index') }}">
                         <i class="fas fa-file-alt me-1"></i> Documents
                     </a>
                 </li>
@@ -26,7 +28,7 @@
                 </li>
                 <li class="nav-item">
                     {% if session.get('role') == 'admin' %}
-                    <a class="nav-link px-4 py-2 rounded-pill {% if request.endpoint == 'users' %}active bg-white text-primary fw-bold shadow-sm{% else %}text-white{% endif %}" href="{{ url_for('users') }}">
+                    <a class="nav-link px-4 py-2 rounded-pill {% if request.endpoint == 'admin.users' %}active bg-white text-primary fw-bold shadow-sm{% else %}text-white{% endif %}" href="{{ url_for('admin.users') }}">
                         <i class="fas fa-users me-1"></i> Users
                     </a>
                     {% endif %}
@@ -47,7 +49,7 @@
                     <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="userDropdown">
                         <li><a class="dropdown-item" href="#"><i class="fas fa-user-circle me-2"></i> Profile</a></li>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
+                        <li><a class="dropdown-item text-danger" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
                     </ul>
                 </li>
                 {% endif %}

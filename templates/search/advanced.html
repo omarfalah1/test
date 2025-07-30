@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h2 class="fw-bold mb-0" style="font-size:2rem; color:#4f46e5;">
+                <i class="fas fa-search me-2"></i> Advanced Search
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('documents.index') }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Documents
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Search Form -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-gradient text-white" style="background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);">
+                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Search Filters</h5>
+                </div>
+                <div class="card-body">
+                    <form method="GET" action="{{ url_for('search.advanced_search') }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Search Query</label>
+                            <input type="text" name="q" class="form-control" value="{{ filters.query or '' }}" 
+                                   placeholder="Search in document names, content, tags...">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">File Type</label>
+                            <select name="file_type" class="form-select">
+                                <option value="">All Types</option>
+                                <option value="pdf" {% if filters.file_type == 'pdf' %}selected{% endif %}>PDF</option>
+                                <option value="doc" {% if filters.file_type == 'doc' %}selected{% endif %}>Word Documents</option>
+                                <option value="txt" {% if filters.file_type == 'txt' %}selected{% endif %}>Text Files</option>
+                                <option value="jpg" {% if filters.file_type == 'jpg' %}selected{% endif %}>Images</option>
+                                <option value="png" {% if filters.file_type == 'png' %}selected{% endif %}>PNG Images</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Date Range</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="date" name="date_from" class="form-control" 
+                                           value="{{ filters.date_range[0] if filters.date_range else '' }}">
+                                </div>
+                                <div class="col-6">
+                                    <input type="date" name="date_to" class="form-control" 
+                                           value="{{ filters.date_range[1] if filters.date_range else '' }}">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">File Size (KB)</label>
+                            <div class="row">
+                                <div class="col-6">
+                                    <input type="number" name="size_min" class="form-control" 
+                                           value="{{ filters.file_size_min // 1024 if filters.file_size_min else '' }}" 
+                                           placeholder="Min">
+                                </div>
+                                <div class="col-6">
+                                    <input type="number" name="size_max" class="form-control" 
+                                           value="{{ filters.file_size_max // 1024 if filters.file_size_max else '' }}" 
+                                           placeholder="Max">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Status</label>
+                            <select name="status" class="form-select">
+                                <option value="">All Statuses</option>
+                                <option value="pending" {% if filters.status == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="approved" {% if filters.status == 'approved' %}selected{% endif %}>Approved</option>
+                                <option value="rejected" {% if filters.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                            </select>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-2"></i>Search
+                            </button>
+                            <a href="{{ url_for('search.advanced_search') }}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Clear Filters
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Saved Searches -->
+            {% if saved_searches %}
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-bookmark me-2"></i>Saved Searches</h6>
+                </div>
+                <div class="card-body">
+                    <div class="list-group list-group-flush">
+                        {% for search in saved_searches %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ search.search_name }}</h6>
+                                <small class="text-muted">{{ search.search_query }}</small>
+                            </div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="loadSavedSearch('{{ search.search_query }}', {{ search.search_filters | tojson }})">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Search Results -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Search Results
+                        {% if results %}
+                        <span class="badge bg-primary ms-2">{{ results|length }}</span>
+                        {% endif %}
+                    </h5>
+                    {% if query or filters %}
+                    <button class="btn btn-sm btn-outline-primary" onclick="saveCurrentSearch()">
+                        <i class="fas fa-bookmark me-1"></i>Save Search
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if results %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Document</th>
+                                    <th>Type</th>
+                                    <th>Size</th>
+                                    <th>Created</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in results %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-file-alt me-2 text-primary"></i>
+                                            <div>
+                                                <div class="fw-bold">{{ doc.original_name }}</div>
+                                                <small class="text-muted">
+                                                    {% if doc.metadata and doc.metadata.tags %}
+                                                    {% for tag in doc.metadata.tags %}
+                                                    <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                                                    {% endfor %}
+                                                    {% endif %}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ doc.file_type|default('unknown') }}</span>
+                                    </td>
+                                    <td>{{ doc.file_size|format_file_size }}</td>
+                                    <td>{{ doc.created_at|format_datetime }}</td>
+                                    <td>
+                                        {% if doc.metadata and doc.metadata.status %}
+                                        {% set status_color = doc.metadata.status|status_color %}
+                                        <span class="badge badge-{{ status_color }} status-bg-{{ status_color }}">
+                                            {{ doc.metadata.status|capitalize }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="{{ url_for('documents.view_document', doc_id=doc.id) }}" 
+                                               class="btn btn-outline-primary" title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ url_for('documents.download_document', doc_id=doc.id) }}" 
+                                               class="btn btn-outline-success" title="Download">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No documents found</h5>
+                        <p class="text-muted">Try adjusting your search criteria</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Save Search Modal -->
+<div class="modal fade" id="saveSearchModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Save Search</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('search.save_search') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Search Name</label>
+                        <input type="text" name="search_name" class="form-control" required 
+                               placeholder="Enter a name for this search">
+                    </div>
+                    <input type="hidden" name="search_query" id="saveSearchQuery">
+                    <input type="hidden" name="search_filters" id="saveSearchFilters">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function loadSavedSearch(query, filters) {
+    const url = new URL(window.location);
+    url.searchParams.set('query', query);
+    
+    if (filters) {
+        if (filters.date_range) {
+            url.searchParams.set('date_from', filters.date_range[0]);
+            url.searchParams.set('date_to', filters.date_range[1]);
+        }
+        if (filters.file_type) {
+            url.searchParams.set('file_type', filters.file_type);
+        }
+        if (filters.file_size_min) {
+            url.searchParams.set('size_min', Math.floor(filters.file_size_min / 1024));
+        }
+        if (filters.file_size_max) {
+            url.searchParams.set('size_max', Math.floor(filters.file_size_max / 1024));
+        }
+        if (filters.status) {
+            url.searchParams.set('status', filters.status);
+        }
+    }
+    
+    window.location.href = url.toString();
+}
+
+function saveCurrentSearch() {
+    const url = new URL(window.location);
+    const query = url.searchParams.get('query') || '';
+    const filters = {};
+    
+    // Collect current filters
+    const fileType = url.searchParams.get('file_type');
+    const dateFrom = url.searchParams.get('date_from');
+    const dateTo = url.searchParams.get('date_to');
+    const sizeMin = url.searchParams.get('size_min');
+    const sizeMax = url.searchParams.get('size_max');
+    const status = url.searchParams.get('status');
+    
+    if (fileType) filters.file_type = fileType;
+    if (dateFrom && dateTo) filters.date_range = [dateFrom, dateTo];
+    if (sizeMin) filters.file_size_min = parseInt(sizeMin) * 1024;
+    if (sizeMax) filters.file_size_max = parseInt(sizeMax) * 1024;
+    if (status) filters.status = status;
+    
+    document.getElementById('saveSearchQuery').value = query;
+    document.getElementById('saveSearchFilters').value = JSON.stringify(filters);
+    
+    new bootstrap.Modal(document.getElementById('saveSearchModal')).show();
+}
+</script>
+{% endblock %} 

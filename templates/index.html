@@ -6,53 +6,73 @@
         <h2 class="fw-bold mb-0" style="font-size:2rem; color:#4f46e5;"><i class="fas fa-file-alt me-2"></i> Documents</h2>
     </div>
     <div class="col-md-4 text-end">
-        <button class="btn btn-lg btn-gradient shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadModal" style="background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%); color: #fff; border-radius: 2em; font-weight: 600; padding: 0.6em 2.2em; letter-spacing: 0.5px;">
-            <i class="fas fa-upload"></i> Upload Document
-        </button>
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('search.advanced_search') }}" class="btn btn-outline-primary me-2">
+                <i class="fas fa-search"></i> Advanced Search
+            </a>
+            <button class="btn btn-lg btn-gradient shadow-sm" data-bs-toggle="modal" data-bs-target="#uploadModal" style="background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%); color: #fff; border-radius: 2em; font-weight: 600; padding: 0.6em 2.2em; letter-spacing: 0.5px;">
+                <i class="fas fa-upload"></i> Upload Document
+            </button>
+        </div>
     </div>
 </div>
+
+<!-- Debug Information -->
+{% if documents or image_groups %}
+<div class="alert alert-info">
+    <strong>Debug Info:</strong> 
+    Documents: {{ documents|length }}, 
+    Image Groups: {{ image_groups|length }},
+    Role: {{ role }},
+    User: {{ session.get('username', 'Unknown') }}
+</div>
+{% endif %}
+
 {% if role == 'admin' %}
-<div class="row mb-3">
+<div class="row mb-4">
     <div class="col-12">
-        <form method="get" class="d-flex flex-wrap align-items-end gap-3 p-3 rounded-4 shadow-sm mb-3" style="background:#f4f6fb;">
-            <div>
-                <label class="fw-bold mb-1">Status:</label>
-                <select name="status" class="form-select rounded-pill" onchange="this.form.submit()">
+        <form method="get" class="d-flex flex-wrap align-items-end gap-4 p-4 filter-form mb-3">
+            <div class="filter-group">
+                <label class="filter-label">Status:</label>
+                <select name="status" class="form-select" onchange="this.form.submit()">
                     <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All</option>
                     <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
                     <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
                     <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
                 </select>
             </div>
-            <div>
-                <label class="fw-bold mb-1">Uploader:</label>
-                <select name="uploader" class="form-select rounded-pill" onchange="this.form.submit()">
+            <div class="filter-group">
+                <label class="filter-label">Uploader:</label>
+                <select name="uploader" class="form-select" onchange="this.form.submit()">
                     <option value="all" {% if uploader_filter == 'all' %}selected{% endif %}>All</option>
                     {% for uploader in all_uploaders %}
                     <option value="{{ uploader }}" {% if uploader_filter == uploader %}selected{% endif %}>{{ uploader }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div>
-                <label class="fw-bold mb-1">Sort by:</label>
-                <select name="sort" class="form-select rounded-pill" onchange="this.form.submit()">
+            <div class="filter-group">
+                <label class="filter-label">Sort by:</label>
+                <select name="sort" class="form-select" onchange="this.form.submit()">
                     <option value="date_desc" {% if sort_by == 'date_desc' %}selected{% endif %}>Newest First</option>
                     <option value="date_asc" {% if sort_by == 'date_asc' %}selected{% endif %}>Oldest First</option>
                     <option value="uploader" {% if sort_by == 'uploader' %}selected{% endif %}>Uploader</option>
                     <option value="status" {% if sort_by == 'status' %}selected{% endif %}>Status</option>
                 </select>
             </div>
-            <div class="flex-grow-1">
-                <label class="fw-bold mb-1">Search:</label>
-                <input type="text" name="search" class="form-control rounded-pill" placeholder="Search by name, tag, uploader" value="{{ search_query }}">
+            <div class="filter-group flex-grow-1">
+                <label class="filter-label">Search:</label>
+                <input type="text" name="search" class="form-control" placeholder="Search by name, tag, uploader" value="{{ search_query }}">
             </div>
-            <div>
-                <button type="submit" class="btn btn-primary rounded-pill px-4">Apply</button>
+            <div class="filter-group">
+                <button type="submit" class="apply-filter-btn">
+                    <i class="fas fa-filter me-2"></i>Apply
+                </button>
             </div>
         </form>
     </div>
 </div>
 {% endif %}
+
 {% if role == 'admin' or role in ['employee', 'omar', 'pola'] %}
 <div class="row justify-content-center">
     <div class="col-12">
@@ -82,35 +102,46 @@
                     </td>
                     <td>
                         <span class="upload-date">
-                            {{ group.metadata.upload_date|default(group.created_at)|format_datetime }}
+                            {% if group.metadata and group.metadata.upload_date %}
+                                {{ group.metadata.upload_date|format_datetime }}
+                            {% else %}
+                                {{ group.created_at|format_datetime }}
+                            {% endif %}
                         </span>
                     </td>
                     <td>
                         {% if role == 'admin' %}
-                            <form action="{{ url_for('set_status', doc_id=group.id) }}" method="POST" class="d-inline">
+                            <form action="{{ url_for('documents.set_status', doc_id=group.id) }}" method="POST" class="d-inline">
                                 <select name="new_status" class="form-select form-select-sm d-inline w-auto status-dropdown" onchange="this.form.submit()">
-                                    <option value="pending" {% if group.metadata.status == 'pending' %}selected{% endif %} data-badge="badge-warning">Pending</option>
-                                    <option value="approved" {% if group.metadata.status == 'approved' %}selected{% endif %} data-badge="badge-success">Approved</option>
-                                    <option value="rejected" {% if group.metadata.status == 'rejected' %}selected{% endif %} data-badge="badge-danger">Declined</option>
+                                    <option value="pending" {% if group.metadata and group.metadata.status == 'pending' %}selected{% endif %}>Pending</option>
+                                    <option value="approved" {% if group.metadata and group.metadata.status == 'approved' %}selected{% endif %}>Approved</option>
+                                    <option value="rejected" {% if group.metadata and group.metadata.status == 'rejected' %}selected{% endif %}>Declined</option>
                                 </select>
                             </form>
                         {% else %}
-                            {% set status_color = group.metadata.status|status_color %}
+                            {% set status = group.metadata.status if group.metadata else 'active' %}
+                            {% set status_color = status|status_color %}
                             <span class="status-badge badge badge-{{ status_color }} status-bg-{{ status_color }}">
-                                {{ group.metadata.status|capitalize }}
+                                {{ status|capitalize }}
                             </span>
                         {% endif %}
                     </td>
-                    <td>{{ group.metadata.feedback or '' }}</td>
-                    {% if role == 'admin' %}<td>{{ group.metadata.uploaded_by }}</td>{% endif %}
-                    <td>{% for tag in group.metadata.tags %}<span class="metadata-tag">{{ tag }}</span> {% endfor %}</td>
+                    <td>{{ group.metadata.feedback if group.metadata else '' }}</td>
+                    {% if role == 'admin' %}<td>{{ group.metadata.uploaded_by if group.metadata else 'Unknown' }}</td>{% endif %}
+                    <td>
+                        {% if group.metadata and group.metadata.tags %}
+                            {% for tag in group.metadata.tags %}
+                                <span class="metadata-tag">{{ tag }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </td>
                     <td>
                         <div class="btn-group" role="group" aria-label="Actions">
-                            <a href="{{ url_for('view_document', doc_id=group.id) }}?img=0" class="btn btn-sm action-btn btn-view" title="View">
+                            <a href="{{ url_for('documents.view_document', doc_id=group.id) }}?img=0" class="btn btn-sm action-btn btn-view" title="View">
                                 <i class="fas fa-eye"></i>
                             </a>
                             {% if role == 'admin' %}
-                            <button type="button" class="btn btn-sm action-btn btn-delete" title="Delete" onclick="confirmDelete('{{ url_for('delete_document', doc_id=group.id) }}')">
+                            <button type="button" class="btn btn-sm action-btn btn-delete" title="Delete" onclick="confirmDelete('{{ url_for('documents.delete_document', doc_id=group.id) }}')">
                                 <i class="fas fa-times-circle"></i>
                             </button>
                             {% endif %}
@@ -123,35 +154,46 @@
                     <td>{{ doc.original_name }}</td>
                     <td>
                         <span class="upload-date">
-                            {{ doc.metadata.upload_date|default(doc.created_at)|format_datetime }}
+                            {% if doc.metadata and doc.metadata.upload_date %}
+                                {{ doc.metadata.upload_date|format_datetime }}
+                            {% else %}
+                                {{ doc.created_at|format_datetime }}
+                            {% endif %}
                         </span>
                     </td>
                     <td>
                         {% if role == 'admin' %}
-                            <form action="{{ url_for('set_status', doc_id=doc.id) }}" method="POST" class="d-inline">
+                            <form action="{{ url_for('documents.set_status', doc_id=doc.id) }}" method="POST" class="d-inline">
                                 <select name="new_status" class="form-select form-select-sm d-inline w-auto status-dropdown" onchange="this.form.submit()">
-                                    <option value="pending" {% if doc.metadata.status == 'pending' %}selected{% endif %} data-badge="badge-warning">Pending</option>
-                                    <option value="approved" {% if doc.metadata.status == 'approved' %}selected{% endif %} data-badge="badge-success">Approved</option>
-                                    <option value="rejected" {% if doc.metadata.status == 'rejected' %}selected{% endif %} data-badge="badge-danger">Declined</option>
+                                    <option value="pending" {% if doc.metadata and doc.metadata.status == 'pending' %}selected{% endif %}>Pending</option>
+                                    <option value="approved" {% if doc.metadata and doc.metadata.status == 'approved' %}selected{% endif %}>Approved</option>
+                                    <option value="rejected" {% if doc.metadata and doc.metadata.status == 'rejected' %}selected{% endif %}>Declined</option>
                                 </select>
                             </form>
                         {% else %}
-                            {% set status_color = doc.metadata.status|status_color %}
+                            {% set status = doc.metadata.status if doc.metadata else 'active' %}
+                            {% set status_color = status|status_color %}
                             <span class="status-badge badge badge-{{ status_color }} status-bg-{{ status_color }}">
-                                {{ doc.metadata.status|capitalize }}
+                                {{ status|capitalize }}
                             </span>
                         {% endif %}
                     </td>
-                    <td>{{ doc.metadata.feedback or '' }}</td>
-                    {% if role == 'admin' %}<td>{{ doc.metadata.uploaded_by }}</td>{% endif %}
-                    <td>{% for tag in doc.metadata.tags %}<span class="metadata-tag">{{ tag }}</span> {% endfor %}</td>
+                    <td>{{ doc.metadata.feedback if doc.metadata else '' }}</td>
+                    {% if role == 'admin' %}<td>{{ doc.metadata.uploaded_by if doc.metadata else 'Unknown' }}</td>{% endif %}
+                    <td>
+                        {% if doc.metadata and doc.metadata.tags %}
+                            {% for tag in doc.metadata.tags %}
+                                <span class="metadata-tag">{{ tag }}</span>
+                            {% endfor %}
+                        {% endif %}
+                    </td>
                     <td>
                         <div class="btn-group" role="group" aria-label="Actions">
-                            <a href="{{ url_for('view_document', doc_id=doc.id) }}" class="btn btn-sm action-btn btn-view" title="View">
+                            <a href="{{ url_for('documents.view_document', doc_id=doc.id) }}" class="btn btn-sm action-btn btn-view" title="View">
                                 <i class="fas fa-eye"></i>
                             </a>
                             {% if role == 'admin' %}
-                            <button type="button" class="btn btn-sm action-btn btn-delete" title="Delete" onclick="confirmDelete('{{ url_for('delete_document', doc_id=doc.id) }}')">
+                            <button type="button" class="btn btn-sm action-btn btn-delete" title="Delete" onclick="confirmDelete('{{ url_for('documents.delete_document', doc_id=doc.id) }}')">
                                 <i class="fas fa-times-circle"></i>
                             </button>
                             {% endif %}
@@ -178,7 +220,7 @@
                 <h5 class="modal-title">Upload Document</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ url_for('upload_document') }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ url_for('documents.upload_document') }}" method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Upload Type</label>

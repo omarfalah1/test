@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('documents.index') }}">Documents</a></li>
+                    <li class="breadcrumb-item active">{{ doc.original_name }}</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0" style="font-size:2rem; color:#4f46e5;">
+                <i class="fas fa-file-alt me-2"></i> {{ doc.original_name }}
+            </h2>
+        </div>
+        <div class="col-md-4 text-end">
+            <div class="btn-group">
+                <a href="{{ url_for('documents.download_document', doc_id=doc.id) }}" class="btn btn-success">
+                    <i class="fas fa-download me-2"></i>Download
+                </a>
+                {% if role == 'admin' %}
+                <a href="{{ url_for('documents.document_permissions', doc_id=doc.id) }}" class="btn btn-outline-primary">
+                    <i class="fas fa-shield-alt me-2"></i>Permissions
+                </a>
+                <a href="{{ url_for('documents.document_activity', doc_id=doc.id) }}" class="btn btn-outline-info">
+                    <i class="fas fa-history me-2"></i>Activity
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Document Details -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-gradient text-white" style="background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Document Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">File Name:</td>
+                                    <td>{{ doc.original_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">File Type:</td>
+                                    <td><span class="badge bg-secondary">{{ doc.file_type|default('unknown') }}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">File Size:</td>
+                                    <td>{{ doc.file_size|format_file_size }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Created:</td>
+                                    <td>{{ doc.created_at|format_datetime }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Version:</td>
+                                    <td>{{ doc.version }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td class="fw-bold">Status:</td>
+                                    <td>
+                                        {% if doc.metadata and doc.metadata.status %}
+                                        {% set status_color = doc.metadata.status|status_color %}
+                                        <span class="badge badge-{{ status_color }} status-bg-{{ status_color }}">
+                                            {{ doc.metadata.status|capitalize }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Unknown</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Uploaded By:</td>
+                                    <td>{{ doc.metadata.uploaded_by if doc.metadata else 'Unknown' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Department:</td>
+                                    <td>{{ doc.metadata.department if doc.metadata else 'Not specified' }}</td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">Tags:</td>
+                                    <td>
+                                        {% if doc.metadata and doc.metadata.tags %}
+                                        {% for tag in doc.metadata.tags %}
+                                        <span class="badge bg-light text-dark me-1">{{ tag }}</span>
+                                        {% endfor %}
+                                        {% else %}
+                                        <span class="text-muted">No tags</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="fw-bold">File Hash:</td>
+                                    <td>
+                                        {% if doc.file_hash %}
+                                        <code class="small">{{ doc.file_hash[:16] }}...</code>
+                                        {% else %}
+                                        <span class="text-muted">Not available</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if doc.metadata and doc.metadata.feedback %}
+                    <div class="mt-3 p-3 bg-light rounded">
+                        <h6 class="fw-bold">Feedback:</h6>
+                        <p class="mb-0">{{ doc.metadata.feedback }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Document Preview -->
+            {% if doc.file_type == 'image' %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-eye me-2"></i>Preview</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ url_for('documents.preview_document', doc_id=doc.id) }}" 
+                         class="img-fluid rounded" style="max-height: 500px;" alt="{{ doc.original_name }}">
+                </div>
+            </div>
+            
+            <!-- Image Group Navigation -->
+            {% if doc.group_images %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-images me-2"></i>Image Navigation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="text-muted">
+                            Image {{ doc.current_image_index + 1 }} of {{ doc.group_images|length }}
+                        </span>
+                        <div class="btn-group">
+                            {% if doc.current_image_index > 0 %}
+                            <a href="{{ url_for('documents.view_document', doc_id=doc.id) }}?img={{ doc.current_image_index - 1 }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-chevron-left"></i> Previous
+                            </a>
+                            {% endif %}
+                            {% if doc.current_image_index < doc.group_images|length - 1 %}
+                            <a href="{{ url_for('documents.view_document', doc_id=doc.id) }}?img={{ doc.current_image_index + 1 }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                Next <i class="fas fa-chevron-right"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Thumbnail Navigation -->
+                    <div class="row">
+                        {% for img in doc.group_images %}
+                        <div class="col-2 mb-2">
+                            <a href="{{ url_for('documents.view_document', doc_id=doc.id) }}?img={{ loop.index0 }}" 
+                               class="d-block text-decoration-none">
+                                <img src="{{ url_for('documents.preview_document', doc_id=doc.id) }}?img={{ loop.index0 }}" 
+                                     class="img-thumbnail {% if loop.index0 == doc.current_image_index %}border-primary{% endif %}" 
+                                     style="height: 60px; object-fit: cover;" alt="Thumbnail">
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% elif doc.file_type == 'text' and doc.content %}
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-file-text me-2"></i>Content Preview</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded" style="max-height: 400px; overflow-y: auto;">{{ doc.content }}</pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Comments Section -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-comments me-2"></i>Comments ({{ comments|length }})</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Add Comment Form -->
+                    <form action="{{ url_for('documents.add_comment', doc_id=doc.id) }}" method="POST" class="mb-4">
+                        <div class="mb-3">
+                            <textarea name="comment" class="form-control" rows="3" 
+                                      placeholder="Add a comment..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-2"></i>Add Comment
+                        </button>
+                    </form>
+
+                    <!-- Comments List -->
+                    {% if comments %}
+                    <div class="comments-list">
+                        {% for comment in comments %}
+                        <div class="comment-item border-bottom pb-3 mb-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-user-circle me-2 text-primary"></i>
+                                        <span class="fw-bold">{{ comment.user_id }}</span>
+                                        <small class="text-muted ms-2">{{ comment.created_at|format_datetime }}</small>
+                                    </div>
+                                    <p class="mb-2">{{ comment.comment }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-comments fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">No comments yet. Be the first to comment!</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Version History -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-history me-2"></i>Version History</h6>
+                </div>
+                <div class="card-body">
+                    {% if versions %}
+                    <div class="list-group list-group-flush">
+                        {% for version in versions %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">Version {{ version.version_number }}</div>
+                                <small class="text-muted">
+                                    {{ version.created_at|format_datetime }} by {{ version.created_by }}
+                                </small>
+                                {% if version.change_description %}
+                                <div class="small text-muted mt-1">{{ version.change_description }}</div>
+                                {% endif %}
+                            </div>
+                            <a href="{{ url_for('documents.view_document_version', doc_id=doc.id, version_id=version.id) }}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center">No previous versions</p>
+                    {% endif %}
+
+                    <!-- Upload New Version -->
+                    {% if role == 'admin' or doc.metadata.uploaded_by == session.username %}
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#uploadVersionModal">
+                            <i class="fas fa-upload me-2"></i>Upload New Version
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        {% if doc.group_images %}
+                        <!-- Image Group Actions -->
+                        <a href="{{ url_for('documents.download_document', doc_id=doc.id) }}?img={{ doc.current_image_index }}" class="btn btn-outline-success">
+                            <i class="fas fa-download me-2"></i>Download Current Image
+                        </a>
+                        {% if doc.group_images|length > 1 %}
+                        <a href="{{ url_for('documents.download_all_images', doc_id=doc.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-download me-2"></i>Download All Images (ZIP)
+                        </a>
+                        {% endif %}
+                        {% else %}
+                        <!-- Regular Document Actions -->
+                        <a href="{{ url_for('documents.download_document', doc_id=doc.id) }}" class="btn btn-outline-success">
+                            <i class="fas fa-download me-2"></i>Download
+                        </a>
+                        {% endif %}
+                        
+                        {% if role == 'admin' %}
+                        <button class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#editMetadataModal">
+                            <i class="fas fa-edit me-2"></i>Edit Metadata
+                        </button>
+                        <button class="btn btn-outline-danger" onclick="confirmDelete('{{ url_for('documents.delete_document', doc_id=doc.id) }}')">
+                            <i class="fas fa-trash me-2"></i>Delete
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Document Statistics -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistics</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="border-end">
+                                <div class="h4 mb-0">{{ versions|length }}</div>
+                                <small class="text-muted">Versions</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="h4 mb-0">{{ comments|length }}</div>
+                            <small class="text-muted">Comments</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Version Modal -->
+<div class="modal fade" id="uploadVersionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload New Version</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('documents.upload_document_version', doc_id=doc.id) }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">New Version File</label>
+                        <input type="file" name="document" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Change Description</label>
+                        <textarea name="change_description" class="form-control" rows="3" 
+                                  placeholder="Describe what changed in this version..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Upload Version</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Metadata Modal -->
+{% if role == 'admin' %}
+<div class="modal fade" id="editMetadataModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Metadata</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('documents.update_metadata', doc_id=doc.id) }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <input type="text" name="department" class="form-control" 
+                               value="{{ doc.metadata.department if doc.metadata else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Tags (comma-separated)</label>
+                        <input type="text" name="tags" class="form-control" 
+                               value="{{ doc.metadata.tags|join(', ') if doc.metadata and doc.metadata.tags else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select name="status" class="form-select">
+                            <option value="pending" {% if doc.metadata.status == 'pending' %}selected{% endif %}>Pending</option>
+                            <option value="approved" {% if doc.metadata.status == 'approved' %}selected{% endif %}>Approved</option>
+                            <option value="rejected" {% if doc.metadata.status == 'rejected' %}selected{% endif %}>Rejected</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Metadata</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function confirmDelete(deleteUrl) {
+    if (confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = deleteUrl;
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

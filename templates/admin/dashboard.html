@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 text-center p-4">
+                <div class="mb-2"><i class="fas fa-file-alt fa-2x text-primary"></i></div>
+                <h5 class="fw-bold">Total Documents</h5>
+                <div class="fs-2 fw-bold" id="total-documents">{{ total_documents }}</div>
+                <small class="text-muted">{{ total_regular_docs }} regular + {{ total_image_groups }} image groups</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 text-center p-4">
+                <div class="mb-2"><i class="fas fa-cloud-upload-alt fa-2x text-success"></i></div>
+                <h5 class="fw-bold">Uploads This Month</h5>
+                <div class="fs-2 fw-bold" id="uploads-this-month">{{ uploads_this_month }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 text-center p-4">
+                <div class="mb-2"><i class="fas fa-layer-group fa-2x text-info"></i></div>
+                <h5 class="fw-bold">Regular Documents</h5>
+                <div class="fs-2 fw-bold" id="total-regular-docs">{{ total_regular_docs }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-0 text-center p-4">
+                <div class="mb-2"><i class="fas fa-images fa-2x text-warning"></i></div>
+                <h5 class="fw-bold">Image Groups</h5>
+                <div class="fs-2 fw-bold" id="total-image-groups">{{ total_image_groups }}</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Detailed Breakdown -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Detailed Status Breakdown</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">Regular Documents</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Pending: <span class="badge bg-warning">{{ pending_regular }}</span></span>
+                                <span>Approved: <span class="badge bg-success">{{ approved_regular }}</span></span>
+                                <span>Rejected: <span class="badge bg-danger">{{ rejected_regular }}</span></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-warning">Image Groups</h6>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Pending: <span class="badge bg-warning">{{ pending_images }}</span></span>
+                                <span>Approved: <span class="badge bg-success">{{ approved_images }}</span></span>
+                                <span>Rejected: <span class="badge bg-danger">{{ rejected_images }}</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row g-4">
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 p-4">
+                <h6 class="fw-bold mb-3">Document Status Distribution</h6>
+                <canvas id="statusPieChart" height="180"></canvas>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card shadow-sm border-0 p-4">
+                <h6 class="fw-bold mb-3">Uploads Per Month</h6>
+                <canvas id="uploadsBarChart" height="180"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// Use real data from Flask context
+const statusCounts = {{ status_counts | tojson }};
+const uploadsPerMonth = {{ uploads_per_month | tojson }};
+
+const statusLabels = Object.keys(statusCounts);
+const statusValues = Object.values(statusCounts);
+const statusColors = statusLabels.map(label => {
+    if (label === 'pending') return '#fbbf24';
+    if (label === 'approved') return '#22c55e';
+    if (label === 'rejected') return '#ef4444';
+    return '#a1a1aa'; // fallback color
+});
+
+const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+window.addEventListener('DOMContentLoaded', function() {
+    // Doughnut chart (hollow center)
+    new Chart(document.getElementById('statusPieChart'), {
+        type: 'doughnut',
+        data: {
+            labels: statusLabels,
+            datasets: [{
+                data: statusValues,
+                backgroundColor: statusColors,
+                borderWidth: 2
+            }]
+        },
+        options: {
+            plugins: { legend: { position: 'bottom' } },
+            responsive: true,
+            cutout: '80%',
+        }
+    });
+    // Bar chart
+    new Chart(document.getElementById('uploadsBarChart'), {
+        type: 'bar',
+        data: {
+            labels: monthLabels,
+            datasets: [{
+                label: "Uploads",
+                data: uploadsPerMonth,
+                backgroundColor: "#6366f1"
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            responsive: true,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+});
+</script>
+{% endblock %} 

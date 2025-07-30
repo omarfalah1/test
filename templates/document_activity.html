@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('index') }}">Documents</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('view_document', doc_id=doc.id) }}">{{ doc.original_name }}</a></li>
+                    <li class="breadcrumb-item active">Activity Log</li>
+                </ol>
+            </nav>
+            <h2 class="fw-bold mb-0" style="font-size:2rem; color:#4f46e5;">
+                <i class="fas fa-history me-2"></i> Activity Log
+            </h2>
+            <p class="text-muted mt-2">View activity history for "{{ doc.original_name }}"</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('view_document', doc_id=doc.id) }}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Document
+            </a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Document Info -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-gradient text-white" style="background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);">
+                    <h5 class="mb-0"><i class="fas fa-file-alt me-2"></i>Document Info</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <i class="fas fa-file-alt fa-2x text-primary me-3"></i>
+                        <div>
+                            <h6 class="mb-1">{{ doc.original_name }}</h6>
+                            <small class="text-muted">{{ doc.file_type|default('unknown') }} • {{ doc.file_size|format_file_size }}</small>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row text-center">
+                        <div class="col-6">
+                            <div class="h5 mb-0 text-primary">{{ doc.version }}</div>
+                            <small class="text-muted">Version</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h5 mb-0 text-success">{{ doc.created_at|format_datetime }}</div>
+                            <small class="text-muted">Created</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Summary -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Activity Summary</h6>
+                </div>
+                <div class="card-body">
+                    <div class="text-center py-4">
+                        <i class="fas fa-clock fa-2x text-muted mb-3"></i>
+                        <p class="text-muted">Activity tracking will be implemented here</p>
+                        <small class="text-muted">This would show statistics like total views, downloads, etc.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>Activity History</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date/Time</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                    <th>IP Address</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-history fa-2x mb-3"></i>
+                                        <p>No activity recorded yet</p>
+                                        <small>Activity logging will be implemented here</small>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

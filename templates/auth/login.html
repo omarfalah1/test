@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block content %}
+<style>
+.bubble-bg {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: #fff;
+    overflow: hidden;
+    z-index: 0;
+}
+.bubble {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.18;
+    animation: bubbleFloat 12s linear infinite;
+}
+.bubble1 { width: 120px; height: 120px; left: 10vw; bottom: -120px; background: #6366f1; animation-delay: 0s; }
+.bubble2 { width: 80px; height: 80px; left: 30vw; bottom: -80px; background: #4f46e5; animation-delay: 2s; }
+.bubble3 { width: 100px; height: 100px; left: 60vw; bottom: -100px; background: #a5b4fc; animation-delay: 4s; }
+.bubble4 { width: 60px; height: 60px; left: 80vw; bottom: -60px; background: #6366f1; animation-delay: 1s; }
+.bubble5 { width: 90px; height: 90px; left: 50vw; bottom: -90px; background: #4f46e5; animation-delay: 3s; }
+@keyframes bubbleFloat {
+    0% { transform: translateY(0) scale(1); opacity: 0.18; }
+    50% { opacity: 0.28; }
+    100% { transform: translateY(-110vh) scale(1.15); opacity: 0.10; }
+}
+.login-fade-in {
+    animation: fadeInUp 1.1s cubic-bezier(.39,.575,.565,1) both;
+}
+@keyframes fadeInUp {
+    0% {opacity: 0; transform: translateY(40px);}
+    100% {opacity: 1; transform: none;}
+}
+.lock-pulse {
+    animation: pulse 1.5s infinite;
+}
+@keyframes pulse {
+    0% {transform: scale(1); opacity: 1;}
+    50% {transform: scale(1.12); opacity: 0.85;}
+    100% {transform: scale(1); opacity: 1;}
+}
+.login-card input:focus {
+    box-shadow: 0 0 0 3px #6366f1aa;
+    border-color: #6366f1;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+.login-card .btn-primary {
+    background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%);
+    border: none;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+    box-shadow: 0 2px 12px rgba(99,102,241,0.13);
+}
+.login-card .btn-primary:hover, .login-card .btn-primary:focus {
+    background: linear-gradient(90deg, #4f46e5 0%, #6366f1 100%);
+    box-shadow: 0 6px 24px rgba(99,102,241,0.18);
+    transform: translateY(-2px) scale(1.03);
+}
+.login-card .form-label {
+    color: #4f46e5;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+</style>
+<div class="bubble-bg">
+    <div class="bubble bubble1"></div>
+    <div class="bubble bubble2"></div>
+    <div class="bubble bubble3"></div>
+    <div class="bubble bubble4"></div>
+    <div class="bubble bubble5"></div>
+</div>
+<div class="d-flex align-items-center justify-content-center min-vh-100" style="position: relative; z-index: 1;">
+    <div class="login-card card shadow-lg border-0 login-fade-in" style="max-width: 400px; width: 100%; border-radius: 1.5em;">
+        <div class="card-header text-center" style="background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%); border-radius: 1.5em 1.5em 0 0;">
+            <i class="fas fa-lock fa-3x mb-3 text-white lock-pulse"></i>
+            <h2 class="mb-0 text-white fw-bold" style="font-family: 'Segoe UI', Arial, sans-serif; letter-spacing: 1px;">Sign In</h2>
+        </div>
+        <div class="card-body p-5">
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <div class="mb-4">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" class="form-control rounded-pill" required autofocus>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Password</label>
+                    <input type="password" name="password" class="form-control rounded-pill" required>
+                </div>
+                <div class="d-grid mb-3">
+                    <button type="submit" class="btn btn-primary btn-lg rounded-pill fw-bold">Login</button>
+                </div>
+            </form>
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-danger mt-3" role="alert">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+    </div>
+</div>
+{% endblock %}
