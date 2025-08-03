@@ -62,6 +62,27 @@
     font-weight: 500;
     letter-spacing: 0.2px;
 }
+
+/* Logo styles */
+.logo-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.system-logo {
+    animation: logoFloat 3s ease-in-out infinite;
+    transition: transform 0.3s ease;
+}
+
+.system-logo:hover {
+    transform: scale(1.1);
+}
+
+@keyframes logoFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-5px); }
+}
 </style>
 <div class="bubble-bg">
     <div class="bubble bubble1"></div>
@@ -73,8 +94,15 @@
 <div class="d-flex align-items-center justify-content-center min-vh-100" style="position: relative; z-index: 1;">
     <div class="login-card card shadow-lg border-0 login-fade-in" style="max-width: 400px; width: 100%; border-radius: 1.5em;">
         <div class="card-header text-center" style="background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%); border-radius: 1.5em 1.5em 0 0;">
-            <i class="fas fa-lock fa-3x mb-3 text-white lock-pulse"></i>
-            <h2 class="mb-0 text-white fw-bold" style="font-family: 'Segoe UI', Arial, sans-serif; letter-spacing: 1px;">Sign In</h2>
+            <div class="logo-container mb-3">
+                <img src="{{ url_for('static', filename='img/Fixed_Emblem_of_the_Ministry_of_Peshmerga_Affairs.png') }}" 
+                     alt="System Logo" 
+                     class="system-logo"
+                     style="width: 80px; height: 80px; object-fit: contain; background: white; border-radius: 50%; padding: 5px;"
+                     onerror="console.log('Logo failed to load'); this.style.display='none';">
+            </div>
+            <h2 class="mb-0 text-white fw-bold" style="font-family: 'Segoe UI', Arial, sans-serif; letter-spacing: 1px;">Document Management System</h2>
+            <p class="text-white-50 mt-2 mb-0" style="font-size: 0.9em;">Sign In to Access</p>
         </div>
         <div class="card-body p-5">
             <form method="POST" action="{{ url_for('auth.login') }}">

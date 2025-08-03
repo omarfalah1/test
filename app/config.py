@@ -15,6 +15,7 @@ class Config:
     # User management
     USERS = {
         'admin': {'password': '1111', 'role': 'admin'},
+        'mqwrya': {'password': 'mqwryapass', 'role': 'admin'},
         'employee': {'password': '2222', 'role': 'employee'},
         'omar': {'password': 'omarpass', 'role': 'omar'},
         'pola': {'password': 'polapass', 'role': 'pola'},

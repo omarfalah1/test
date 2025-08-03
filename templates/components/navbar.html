@@ -2,7 +2,12 @@
 <nav class="navbar navbar-expand-lg navbar-dark shadow-lg" style="background: linear-gradient(90deg, #6366f1 0%, #4f46e5 100%); border-radius: 0 0 2em 2em; min-height: 70px;">
     <div class="custom-navbar-container d-flex justify-content-between align-items-center mx-auto px-4" style="max-width: 1200px; width: 100%;">
         <a class="navbar-brand d-flex align-items-center fw-bold fs-4" href="{{ url_for('documents.index') }}" style="letter-spacing: 1px;">
-            <i class="fas fa-file-archive me-2" style="font-size: 1.7em;"></i> DMS
+            <img src="{{ url_for('static', filename='img/Fixed_Emblem_of_the_Ministry_of_Peshmerga_Affairs.png') }}" 
+                 alt="System Logo" 
+                 class="navbar-logo me-2"
+                 style="width: 40px; height: 40px; object-fit: contain; background: white; border-radius: 50%; padding: 2px;"
+                 onerror="console.log('Navbar logo failed to load'); this.style.display='none';">
+            DMS
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
             <span class="navbar-toggler-icon"></span>
@@ -86,5 +91,19 @@
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: #fff;
     box-shadow: 0 2px 8px rgba(99,102,241,0.13);
+}
+
+/* Navbar logo styles */
+.navbar-logo {
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.navbar-logo:hover {
+    transform: scale(1.1);
+    filter: brightness(0) invert(1) drop-shadow(0 0 5px rgba(255,255,255,0.5));
+}
+
+.navbar-brand:hover .navbar-logo {
+    transform: scale(1.1);
 }
 </style>

@@ -28,10 +28,10 @@
 </div>
 {% endif %}
 
-{% if role == 'admin' %}
+<!-- Search and Filter Section for All Users -->
 <div class="row mb-4">
     <div class="col-12">
-        <form method="get" class="d-flex flex-wrap align-items-end gap-4 p-4 filter-form mb-3">
+        <form method="get" class="d-flex flex-wrap align-items-end gap-4 p-4 filter-form mb-3" style="background: #f8f9fa; border-radius: 1em;">
             <div class="filter-group">
                 <label class="filter-label">Status:</label>
                 <select name="status" class="form-select" onchange="this.form.submit()">
@@ -39,6 +39,7 @@
                     <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
                     <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
                     <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
                 </select>
             </div>
             <div class="filter-group">
@@ -76,7 +77,6 @@
         </form>
     </div>
 </div>
-{% endif %}
 
 {% if role == 'admin' or role in ['employee', 'omar', 'pola'] %}
 <div class="row justify-content-center">
@@ -90,7 +90,7 @@
                             <th>Upload Date</th>
                             <th>Status</th>
                             <th>Feedback</th>
-                            {% if role == 'admin' %}<th>Uploader</th>{% endif %}
+                            <th>Uploader</th>
                             <th>Recipients</th>
                             <th>Tags</th>
                             <th>Actions</th>
@@ -133,7 +133,7 @@
                         {% endif %}
                     </td>
                     <td>{{ group.metadata.feedback if group.metadata else '' }}</td>
-                    {% if role == 'admin' %}<td>{{ group.metadata.uploaded_by if group.metadata else 'Unknown' }}</td>{% endif %}
+                    <td>{{ group.metadata.uploaded_by if group.metadata else 'Unknown' }}</td>
                     <td>
                         {% if group.metadata and group.metadata.recipients %}
                             {% for recipient in group.metadata.recipients %}
@@ -194,7 +194,7 @@
                         {% endif %}
                     </td>
                     <td>{{ doc.metadata.feedback if doc.metadata else '' }}</td>
-                    {% if role == 'admin' %}<td>{{ doc.metadata.uploaded_by if doc.metadata else 'Unknown' }}</td>{% endif %}
+                    <td>{{ doc.metadata.uploaded_by if doc.metadata else 'Unknown' }}</td>
                     <td>
                         {% if doc.metadata and doc.metadata.recipients %}
                             {% for recipient in doc.metadata.recipients %}
@@ -226,7 +226,7 @@
                 </tr>
                 {% endfor %}
                 {% if not documents and not image_groups %}
-                <tr><td colspan="{% if role == 'admin' %}8{% else %}7{% endif %}">No documents found.</td></tr>
+                <tr><td colspan="8">No documents found.</td></tr>
                 {% endif %}
             </tbody>
         </table>
@@ -278,17 +278,19 @@
                             <option value="draft">Draft</option>
                         </select>
                     </div>
+                    {% if role != 'admin' %}
                     <div class="mb-3">
-                        <label class="form-label">Send To (Recipients)</label>
+                        <label class="form-label">Send To (Admins Only)</label>
                         <select name="recipients" class="form-select" multiple>
                             {% for username, info in Config.USERS.items() %}
-                                {% if username != session.get('username') %}
+                                {% if info.role == 'admin' and username != session.get('username') %}
                                 <option value="{{ username }}">{{ username }} ({{ info.role }})</option>
                                 {% endif %}
                             {% endfor %}
                         </select>
-                        <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple recipients. Leave empty to keep document private.</small>
+                        <small class="form-text text-muted">Hold Ctrl/Cmd to select multiple admin recipients. Leave empty to keep document private.</small>
                     </div>
+                    {% endif %}
                     {% if role == 'admin' %}
                     <div class="mb-3">
                         <label class="form-label">Uploaded By</label>

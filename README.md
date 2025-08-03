@@ -27,6 +27,7 @@ A comprehensive Flask-based document management system with advanced features in
 - Access the application at `http://localhost:5000`
 - Login with provided credentials:
   - Admin: `admin` / `1111`
+  - Admin: `mqwrya` / `mqwryapass`
   - Employee: `employee` / `2222`
   - Omar: `omar` / `omarpass`
   - Pola: `pola` / `polapass`
